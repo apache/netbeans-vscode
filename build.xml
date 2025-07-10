@@ -152,7 +152,7 @@
 	<taskdef name="resolvelist" classname="org.netbeans.nbbuild.ResolveList" classpath="${nbantext.jar}" />
         <resolvelist name="allmodules" path="modules.fullpath" dir="${nb_all}" list="${clusters.config.release.list}"/>
 
-        <createlicensesummary licenseStub="${nb_all}/LICENSE"
+        <createlicensesummary licenseStub="${basedir}/LICENSE"
                               noticeStub="${nb_all.build.dir}/notice-stub.txt"
                               report="${vsc.build.dir}/createlicensesummary.xml"
                               nball="${nb_all}"
