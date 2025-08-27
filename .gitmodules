@@ -1,3 +1,4 @@
 [submodule "netbeans"]
 	path = netbeans
 	url = https://github.com/apache/netbeans.git
+	branch = vsnetbeans_2701
