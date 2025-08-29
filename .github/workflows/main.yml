@@ -118,7 +118,7 @@ jobs:
           restore-keys: ${{ runner.os }}-
 
       - name: Build NetBeans
-        run: ant $OPTS -quiet -Dcluster.config=$CLUSTER_CONFIG build-netbeans
+        run: ant $OPTS -quiet -Dcluster.config=$CLUSTER_CONFIG -Dmetabuild.jsonurl=https://raw.githubusercontent.com/apache/netbeans-jenkins-lib/refs/heads/master/meta/netbeansvscode.json -Dmetabuild.RawVersion=dev build-netbeans
 
       - name: Prepare Artifact
         if: ${{ matrix.java == '17' }}
