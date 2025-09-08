@@ -200,7 +200,7 @@ jobs:
       # extra round for VSCodeExt which is built with 'release' config
       - name: Set up node
         if: ${{ (matrix.config == 'release') && success() }}
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 20.18.1
 
@@ -231,7 +231,7 @@ jobs:
           distribution: ${{ env.DEFAULT_JAVA_DISTRIBUTION }}
 
       - name: Set up node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 20.18.1
 
