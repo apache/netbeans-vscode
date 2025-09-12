@@ -943,6 +943,7 @@ export function activate(context: ExtensionContext): VSNetBeansAPI {
             } else {
                 debugConfig['launchConfiguration'] = launchConfiguration;
             }
+            debugConfig['noDebug'] = noDebug;
             debugConfig['testRun'] = testRun;
 
             const workspaceFolder = vscode.workspace.getWorkspaceFolder(docUri);
@@ -953,9 +954,6 @@ export function activate(context: ExtensionContext): VSNetBeansAPI {
                 debugConfig['mainClass'] =  docUri.toString();
             }
             
-            const debugOptions : vscode.DebugSessionOptions = {
-                noDebug: noDebug,
-            }
             if (testInParallel) {
                 debugConfig['testInParallel'] = testInParallel;
             }
@@ -963,7 +961,7 @@ export function activate(context: ExtensionContext): VSNetBeansAPI {
                 debugConfig['projects'] = projects;
             }
 
-            const ret = await vscode.debug.startDebugging(workspaceFolder, debugConfig, debugOptions);     
+            const ret = await vscode.debug.startDebugging(workspaceFolder, debugConfig);     
             return ret ? new Promise((resolve) => {
                 const listener = vscode.debug.onDidTerminateDebugSession(() => {
                     listener.dispose();
