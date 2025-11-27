@@ -20,6 +20,10 @@
     under the License.
 
 -->
+## Version 28.0.1
+* VSNetBeans release based on Apache NetBeans 28.0 IDE release
+* Several fixes improving VS Code functionality
+
 ## Version 27.0.1
 * Support Gradle 9 and several bug fixes for Gradle
 * 1st release of Apache NetBeans for VS Code done from `netbeans-vscode` repository
