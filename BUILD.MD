@@ -23,7 +23,7 @@
 
 ## Prerequisities
 
-- JDK, version 17 or later
+- JDK, version 21 or later
 - Ant, latest version
 - Maven, latest version
 - node.js, latest LTS (to build VSIX)
@@ -33,7 +33,8 @@
 
 ```bash
 $ git clone --recurse-submodules https://github.com/apache/netbeans-vscode.git
-$ cd netbeans-vscode/
+$ cd netbeans-vscode
+netbeans-vscode$ git submodules update --init
 ```
 
 ## Building
@@ -44,7 +45,8 @@ To build the VS Code extension invoke:
 netbeans-vscode$ ant build-netbeans
 netbeans-vscode$ ant build-vscode-ext
 ```
-The resulting extension is then in the `build` directory, with the `.vsix` extension.
+The resulting VSCode extension is then generated in the `build` directory -
+a file with the `.vsix` extension.
 The typical file name is `apache-netbeans-java-0.1.0.vsix` - the version can be
 changed by using the `-Dvsix.version=x.y.z` property - that's what
 [continuous integration server](https://ci-builds.apache.org/job/Netbeans/job/netbeans-vscode/)
@@ -122,50 +124,39 @@ vscode$ code --extensionDevelopmentPath=`pwd` path_to_project
 Or you can open the `vscode` folder in `code` directly and use **F5** to
 debug the extension's *typescript code*.
 
-To debug the *Java code*, launch the NetBeans part of the VS Code system first
-and specify suitable debug arguments to start _standalone NBLS_ instance:
+To debug the *Java code*, use following prepared script to launch `code` with
+necessary arguments:
 
 ```bash
-vscode$ npm run nbcode -- --jdkhome /jdk -J-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=8000
+vscode$ npm run nbcode
 ```
-
-To add extra modules while debugging the NetBeans part
+The script needs to have `code` and JDK available on classpath. It prints
+out the command it attempts to invoke. One can either copy the command and
+alter it, when necessary, but one can also provide extra arguments after `--`.
+For example to add extra modules while debugging the NetBeans part
 ```bash
-vscode$ npm run nbcode -- -J-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=8000 -J-Dnetbeans.extra.dirs=/path/to/extension
+vscode$ npm run nbcode -- -J-Dnetbeans.extra.dirs=/path/to/extension
 ```
 
-Connect to the process with Java debugger, setup all breakpoints. Then launch
-the VS Code extension (which connects to the already running _standalone NBLS_ Java process):
-
-```bash
-vscode$ code --extensionDevelopmentPath=`pwd` path_to_the_maven_project
-```
-
-To start from a clean state, following
+The JPDA protocol listens on port 8000. Connect to the process with Java debugger,
+setup all breakpoints. To start from a clean state the following
 [CLI options](https://code.visualstudio.com/docs/editor/command-line)
-maybe of an interest:
+are being passed to the `code` by default:
 - `--user-data-dir` - clean any user settings with this option
 - `--extensions-dir` - avoid 3rd party extensions using this option
 
-**Important note**: when `--user-data-dir` is used, the _standalone NBLS_ must be start as
-```bash
-vscode$ nbcode_userdir=/the-code-user-data-dir npm run nbcode --  --jdkhome /jdk -J-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=8000
-```
-So that the vscode can connect to the _standalone NBLS_ instance.
+The script also instructs the system to print messages (stderr, out) to the console
+by adding `-J-Dnetbeans.logger.console=true` to the npm commandline.
+This has the same effect as `netbeans.verbose = true` settings in the vscode.
 
+<!--
 ### NBLS userdir locations
+
 The default userdir location is inside the **global** vscode settings location:
 - on Linux: `~/.config/Code/User/globalStorage/asf.apache-netbeans-java/userdir
 - on MacOS X: ~/Library/Application Support/Code/User/globalStorage/asf.apache-netbeans-java/userdir
 
 When the environment variable `nbcode_userdir` (to e.g. `/tmp/foo`) is set when starting vscode or nbcode (npm run nbcode), the userdir will point to `/tmp/foo/userdir`.
-
-### Debug output 
-_Standalone NBLS_ can be instructed to print messages (stderr, out) to the console: add `-J-Dnetbeans.logger.console=true` to the npm commandline. This has the same effect as `netbeans.verbose = true` settings in the vscode. 
-
-### LSP protocol tracing
-Messages from the LSP protocol can be displayed in vscode by setting `java.trace.server = verbose` setting in vscode JSON settings. Sometimes it may be needed to record LSP requests and responses in the debug output log stream from the Apache NetBeans language server so that requests are properly ordered with logs from executed actions. This can be enabled on language server startup by adding `-J-Dorg.netbeans.modules.java.lsp.server.lsptrace.level=FINEST`
-to the NBLS commandline.
 
 ### Debugging separately from global NBLS
 By default the extension uses **global** userdir of the **global** vscode instance and uses NBLS data in there. In case this is not desired, the `launch.json` must be changed:
@@ -179,3 +170,8 @@ When using _standalone NBLS_ at the same time, the NBLS must be started as
 vscode$ user_data_dir=/path/to/development/area npm run nbcode -- --jdkhome /jdk -J-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=8000
 ```
 This way the NBLS will use a separate config/cache directory and will not interfere with the default / global installation.
+-->
+
+### LSP protocol tracing
+Messages from the LSP protocol can be displayed in vscode by setting `java.trace.server = verbose` setting in vscode JSON settings. Sometimes it may be needed to record LSP requests and responses in the debug output log stream from the Apache NetBeans language server so that requests are properly ordered with logs from executed actions. This can be enabled on language server startup by adding `-J-Dorg.netbeans.modules.java.lsp.server.lsptrace.level=FINEST`
+to the NBLS commandline.

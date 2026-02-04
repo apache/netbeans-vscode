@@ -26,6 +26,7 @@ import { Readable } from 'stream';
 import { env } from 'process';
 
 export interface LaunchInfo {
+    debug: string | unknown;
     clusters: string[];
     extensionPath: string;
     storagePath: string;
@@ -34,8 +35,8 @@ export interface LaunchInfo {
 }
 
 function find(info: LaunchInfo): string {
-    let nbcode = os.platform() === 'win32' ? 
-        os.arch() === 'x64' ? 'nbcode64.exe' : 'nbcode.exe' 
+    let nbcode = os.platform() === 'win32' ?
+        os.arch() === 'x64' ? 'nbcode64.exe' : 'nbcode.exe'
         : 'nbcode';
     let nbcodePath = path.join(info.extensionPath, "nbcode", "bin", nbcode);
 
@@ -74,10 +75,10 @@ export function launch(
         ideArgs.push(...env['netbeans_extra_options'].split(' '));
     }
     ideArgs.push(...extraArgs);
-    if (env['netbeans_debug'] && extraArgs && extraArgs.find(s => s.includes("--list"))) {
-        ideArgs.push(...['-J-Dnetbeans.logger.console=true', '-J-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=8000']);
+    let debugArgs = info.debug
+    if (typeof debugArgs === 'string') {
+        ideArgs.push(...['-J-Dnetbeans.logger.console=true', debugArgs]);
     }
-
     console.log(`Launching NBLS with arguments: ` + ideArgs);
 
     let process: ChildProcessByStdio<any, Readable, Readable> = spawn(nbcodePath, ideArgs, {
@@ -97,30 +98,58 @@ if (typeof process === 'object' && typeof process.argv0 ==='string' && process.a
     let args = process.argv.slice(2);
     let json = JSON.parse("" + fs.readFileSync(path.join(extension, 'package.json')));
     let storage;
-    
-    if (!env.nbcode_userdir || env.nbcode_userdir == 'global') {
-        storage = path.join(os.platform() === 'darwin' ? 
-                path.join(os.homedir(), 'Library', 'Application Support') :
-                path.join(os.homedir(), '.config'),
-                'Code', 'User', 'globalStorage', json.publisher + '.' + json.name);
+    let datadir;
+    if (!env.nbcode_userdir) {
+        datadir= path.join(process.cwd(), "out", "userdir");
+        storage = path.join(datadir, json.publisher + '.' + json.name);
+    } else if (env.nbcode_userdir == 'global') {
+        if (os.platform() === 'darwin') {
+            datadir = path.join(os.homedir(), 'Library', 'Application Support');
+        } else {
+            datadir = path.join(os.homedir(), '.config', 'Code', 'User', 'globalStorage');
+        }
+        storage = path.join(datadir, json.publisher + '.' + json.name);
     } else {
+        datadir= path.join(process.cwd(), "out", "userdir");
         storage = env.nbcode_userdir;
     }
-    console.log('Launching NBLS with user directory: ' + storage)
-    let info = {
-        clusters : clusters,
-        extensionPath: extension,
-        storagePath : storage,
-        jdkHome : null
-    };
-    let p = launch(info, ...args);
-    p.stdout.on('data', function(data) {
+    let extdir = path.join(process.cwd(), "out", "extdir")
+    let codeArgs = [
+        "--extensionDevelopmentPath=" + process.cwd(),
+        "--user-data-dir=" + datadir,
+        "--extensions-dir=" + extdir
+    ].concat(args);
+    let extraEnv: NodeJS.ProcessEnv = {
+        netbeans_debug : '-J-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=8000'
+    }
+    console.log('Launching `code` with following arguments:');
+    for (var arg of codeArgs) {
+        console.log(`  ${arg}`);
+    }
+    console.log('and following additional environment variables:');
+    for (var name in extraEnv) {
+        console.log(`  ${name}=${extraEnv[name]}`);
+    }
+
+    let codeProc: ChildProcessByStdio<any, Readable, Readable> = spawn("code", codeArgs, {
+        stdio : ["ignore", "pipe", "pipe"],
+        cwd : process.cwd(),
+        env : Object.assign(process.env, extraEnv)
+    });
+    codeProc.stdout.on('data', function(data) {
         console.log(data.toString());
     });
-    p.stderr.on('data', function(data) {
+    codeProc.stderr.on('data', function(data) {
         console.log(data.toString());
     });
-    p.on('close', (code) => {
-        console.log(`nbcode finished with status ${code}`);
+    codeProc.on('error', (data) => {
+        console.error(`code yielded an error: ${data} and ${data.stack}`);
+    });
+    codeProc.on('message', (data) => {
+        console.error(`code message: ${data}`);
+    });
+    codeProc.on('close', (code) => {
+        console.log(`code finished with status ${code}, exiting the launcher script`);
+        process.exit(code);
     });
 }

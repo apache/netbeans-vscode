@@ -52,7 +52,7 @@ import * as launcher from './nbcode';
 import {NbTestAdapter} from './testAdapter';
 import { asRanges, StatusMessageRequest, ShowStatusMessageParams, QuickPickRequest, InputBoxRequest, MutliStepInputRequest, TestProgressNotification, DebugConnector,
          TextEditorDecorationCreateRequest, TextEditorDecorationSetNotification, TextEditorDecorationDisposeNotification, HtmlPageRequest, HtmlPageParams,
-         ExecInHtmlPageRequest, SetTextEditorDecorationParams, ProjectActionParams, UpdateConfigurationRequest, QuickPickStep, InputBoxStep, SaveDocumentsRequest, SaveDocumentRequestParams, OutputMessage, WriteOutputRequest, ShowOutputRequest, CloseOutputRequest, ResetOutputRequest 
+         ExecInHtmlPageRequest, SetTextEditorDecorationParams, ProjectActionParams, UpdateConfigurationRequest, QuickPickStep, InputBoxStep, SaveDocumentsRequest, SaveDocumentRequestParams, OutputMessage, WriteOutputRequest, ShowOutputRequest, CloseOutputRequest, ResetOutputRequest
 } from './protocol';
 import * as launchConfigurations from './launchConfigurations';
 import { createTreeViewService, TreeViewService, TreeItemDecorator, Visualizer, CustomizableTreeDataProvider } from './explorer';
@@ -67,6 +67,7 @@ import * as sshGuide from './panels/SshGuidePanel';
 import * as runImageGuide from './panels/RunImageGuidePanel';
 import { shouldHideGuideFor } from './panels/guidesUtil';
 import { SSHSession } from './ssh/ssh';
+import { env } from 'process';
 
 const API_VERSION : string = "1.0";
 export const COMMAND_PREFIX : string = "nbls";
@@ -132,30 +133,37 @@ export function enableConsoleLog() {
     console.log("enableConsoleLog");
 }
 
-export function findClusters(myPath : string): string[] {
-    let clusters = [];
+export function findClusters(myPath : string, log: vscode.OutputChannel): string[] {
+    let clusters: string[] = [];
     for (let e of vscode.extensions.all) {
         if (e.extensionPath === myPath) {
             continue;
         }
         const dir = path.join(e.extensionPath, 'nbcode');
-        if (!fs.existsSync(dir)) {
-            continue;
-        }
-        const exists = fs.readdirSync(dir);
-        for (let clusterName of exists) {
-            let clusterPath = path.join(dir, clusterName);
-            let clusterModules = path.join(clusterPath, 'config', 'Modules');
-            if (!fs.existsSync(clusterModules)) {
-                continue;
-            }
-            let perm = fs.statSync(clusterModules);
-            if (perm.isDirectory()) {
-                clusters.push(clusterPath);
+        searchAddCluster(dir);
+    }
+    return clusters;
+
+    function searchAddCluster(rootWithClusters: string) {
+        if (fs.existsSync(rootWithClusters)) {
+            const exists = fs.readdirSync(rootWithClusters);
+            for (let clusterName of exists) {
+                let clusterPath = path.join(rootWithClusters, clusterName);
+                addCluster(clusterPath);
             }
         }
     }
-    return clusters;
+    function addCluster(clusterPath: string): boolean {
+        let clusterModules = path.join(clusterPath, 'config', 'Modules');
+        if (fs.existsSync(clusterModules)) {
+            let perm = fs.statSync(clusterModules);
+            if (perm.isDirectory()) {
+                clusters.push(clusterPath);
+                return true;
+            }
+        }
+        return false;
+    }
 }
 
 // for tests only !
@@ -397,7 +405,7 @@ class LineBufferingPseudoterminal implements vscode.Pseudoterminal {
     private closeEmitter = new vscode.EventEmitter<void>();
     onDidClose?: vscode.Event<void> = this.closeEmitter.event;
 
-    private buffer: string = ''; 
+    private buffer: string = '';
     private isOpen = false;
     private readonly name: string;
     private terminal: vscode.Terminal | undefined;
@@ -476,7 +484,7 @@ class LineBufferingPseudoterminal implements vscode.Pseudoterminal {
                 }
             });
         }
-        // Prevent 'stealing' of the focus when running tests in parallel 
+        // Prevent 'stealing' of the focus when running tests in parallel
        if (!testAdapter?.testInParallelProfileExist()) {
             this.terminal.show(true);
        }
@@ -494,12 +502,12 @@ class LineBufferingPseudoterminal implements vscode.Pseudoterminal {
             this.instances.set(name, instance);
         }
         const instance = this.instances.get(name)!;
-        instance.show(); 
+        instance.show();
         return instance;
     }
 }
 
-export function activate(context: ExtensionContext): VSNetBeansAPI {    
+export function activate(context: ExtensionContext): VSNetBeansAPI {
     const provider = new StringContentProvider();
     const scheme = 'in-memory';
     const providerRegistration = vscode.workspace.registerTextDocumentContentProvider(scheme, provider);
@@ -511,7 +519,7 @@ export function activate(context: ExtensionContext): VSNetBeansAPI {
             if (selected == POLICIES_UPLOAD) {
                 await vscode.commands.executeCommand('nbls.cloud.assets.policy.upload');
                 return;
-            } 
+            }
 
             const content = await vscode.commands.executeCommand('nbls.cloud.assets.policy.create.local') as string;
             const document = vscode.Uri.parse(`${scheme}:policies.txt?${encodeURIComponent(content)}`);
@@ -530,7 +538,7 @@ export function activate(context: ExtensionContext): VSNetBeansAPI {
                 return;
             } else if (selected == CONFIG_TO_OKE_CM) {
                 await commands.executeCommand('nbls.cloud.assets.configmap.upload');
-                return;               
+                return;
             }
             const content = await vscode.commands.executeCommand('nbls.cloud.assets.config.create.local') as string;
             const document = vscode.Uri.parse(`${scheme}:application.properties?${encodeURIComponent(content)}`);
@@ -621,9 +629,9 @@ export function activate(context: ExtensionContext): VSNetBeansAPI {
                 });
             }
         }
-        let warnedJDKs : string[] = specifiedJDKWarned; 
+        let warnedJDKs : string[] = specifiedJDKWarned;
         if (!jdkOK && !warnedJDKs.includes(specifiedJDK || '')) {
-            const msg = specifiedJDK ? 
+            const msg = specifiedJDK ?
                 `The current path to JDK "${specifiedJDK}" may be invalid. A valid JDK ${MINIMAL_JDK_VERSION}+ is required by Apache NetBeans Language Server to run.
                 You should configure a proper JDK for Apache NetBeans and/or other technologies. Do you want to run JDK configuration now?` :
                 `A valid JDK ${MINIMAL_JDK_VERSION}+ is required by Apache NetBeans Language Server to run, but none was found. You should configure a proper JDK for Apache NetBeans and/or other technologies. ` +
@@ -637,7 +645,7 @@ export function activate(context: ExtensionContext): VSNetBeansAPI {
                 warnedJDKs.push(specifiedJDK || '');
             }
         }
-        let currentClusters = findClusters(context.extensionPath).sort();
+        let currentClusters = findClusters(context.extensionPath, log).sort();
         const dsSorter = (a: TextDocumentFilter, b: TextDocumentFilter) => {
             return (a.language || '').localeCompare(b.language || '')
                 || (a.pattern || '').localeCompare(b.pattern || '')
@@ -646,7 +654,7 @@ export function activate(context: ExtensionContext): VSNetBeansAPI {
         let currentDocumentSelectors = collectDocumentSelectors().sort(dsSorter);
         context.subscriptions.push(vscode.extensions.onDidChange(() => {
             checkConflict();
-            const newClusters = findClusters(context.extensionPath).sort();
+            const newClusters = findClusters(context.extensionPath, log).sort();
             const newDocumentSelectors = collectDocumentSelectors().sort(dsSorter);
             if (newClusters.length !== currentClusters.length || newDocumentSelectors.length !== currentDocumentSelectors.length
                 || newClusters.find((value, index) => value !== currentClusters[index]) || newDocumentSelectors.find((value, index) => value !== currentDocumentSelectors[index])) {
@@ -900,7 +908,7 @@ export function activate(context: ExtensionContext): VSNetBeansAPI {
         }
         class P implements vscode.DebugConfigurationProvider {
             config : vscode.DebugConfiguration | undefined;
-            
+
             resolveDebugConfigurationWithSubstitutedVariables(folder: vscode.WorkspaceFolder | undefined, debugConfiguration: vscode.DebugConfiguration, token?: vscode.CancellationToken): vscode.ProviderResult<vscode.DebugConfiguration> {
                 this.config = debugConfiguration;
                 return undefined;
@@ -953,7 +961,7 @@ export function activate(context: ExtensionContext): VSNetBeansAPI {
             } else {
                 debugConfig['mainClass'] =  docUri.toString();
             }
-            
+
             if (testInParallel) {
                 debugConfig['testInParallel'] = testInParallel;
             }
@@ -961,7 +969,7 @@ export function activate(context: ExtensionContext): VSNetBeansAPI {
                 debugConfig['projects'] = projects;
             }
 
-            const ret = await vscode.debug.startDebugging(workspaceFolder, debugConfig);     
+            const ret = await vscode.debug.startDebugging(workspaceFolder, debugConfig);
             return ret ? new Promise((resolve) => {
                 const listener = vscode.debug.onDidTerminateDebugSession(() => {
                     listener.dispose();
@@ -971,11 +979,11 @@ export function activate(context: ExtensionContext): VSNetBeansAPI {
         }
     };
 
-    context.subscriptions.push(commands.registerCommand(COMMAND_PREFIX + '.run.test.parallel', async (projects?) => {        
+    context.subscriptions.push(commands.registerCommand(COMMAND_PREFIX + '.run.test.parallel', async (projects?) => {
         testAdapter?.runTestsWithParallelProfile(projects);
     }));
 
-    context.subscriptions.push(commands.registerCommand(COMMAND_PREFIX + '.run.test.parallel.createProfile', async (projects?) => {        
+    context.subscriptions.push(commands.registerCommand(COMMAND_PREFIX + '.run.test.parallel.createProfile', async (projects?) => {
         testAdapter?.registerRunInParallelProfile(projects);
     }));
 
@@ -1151,7 +1159,7 @@ export function activate(context: ExtensionContext): VSNetBeansAPI {
  */
 let maintenance : Promise<void> | null;
 
-function activateWithJDK(specifiedJDK: string | null, context: ExtensionContext, log : vscode.OutputChannel, notifyKill: boolean, 
+function activateWithJDK(specifiedJDK: string | null, context: ExtensionContext, log : vscode.OutputChannel, notifyKill: boolean,
     clientResolve? : (x : NbLanguageClient) => void, clientReject? : (x : any) => void): void {
     let oldClient = client;
     let setClient : [(c : NbLanguageClient) => void, (err : any) => void];
@@ -1293,12 +1301,13 @@ function doActivateWithJDK(promise: Promise<NbLanguageClient>, specifiedJDK: str
     }
 
     let info = {
-        clusters : findClusters(context.extensionPath),
+        clusters : findClusters(context.extensionPath, log),
+        debug: env['netbeans_debug'] ? '-J-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=8000' : null,
         extensionPath: context.extensionPath,
         storagePath : userdir,
         jdkHome : specifiedJDK,
         verbose: beVerbose
-    };    
+    };
     let launchMsg = `Launching Apache NetBeans Language Server with ${specifiedJDK ? specifiedJDK : 'default system JDK'} and userdir ${userdir}`;
     handleLog(log, launchMsg);
     vscode.window.setStatusBarMessage(launchMsg, 2000);
@@ -1443,9 +1452,9 @@ function doActivateWithJDK(promise: Promise<NbLanguageClient>, specifiedJDK: str
         errorHandler: {
             error : function(error: Error, _message: Message, count: number): ErrorHandlerResult {
                 startupError = error.message;
-                return { 
-                    action: started ? ErrorAction.Continue : ErrorAction.Shutdown, 
-                    message: error.message 
+                return {
+                    action: started ? ErrorAction.Continue : ErrorAction.Shutdown,
+                    message: error.message
                 };
             },
             closed : function(): CloseHandlerResult {
@@ -1514,7 +1523,7 @@ function doActivateWithJDK(promise: Promise<NbLanguageClient>, specifiedJDK: str
                 if (uriList.includes(uri)) {
                     ed.save();
                     continue;
-                } 
+                }
                 if (uri.startsWith("file:///")) {
                     // make file:/// just file:/
                     uri = "file:/" + uri.substring(8);
