@@ -20,6 +20,10 @@
     under the License.
 
 -->
+## Version 29.0.1
+* VSNetBeans release based on Apache NetBeans 29.0 IDE release
+* NPM version update
+
 ## Version 28.0.1
 * VSNetBeans release based on Apache NetBeans 28.0 IDE release
 * Several fixes improving VS Code functionality
