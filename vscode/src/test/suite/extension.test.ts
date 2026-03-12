@@ -52,10 +52,11 @@ suite('Extension Test Suite', () => {
 
     test('Find clusters', async () => {
         const nbcode = vscode.extensions.getExtension('asf.apache-netbeans-java');
+        let log = vscode.window.createOutputChannel("Apache NetBeans Language Server");
         assert.ok(nbcode);
 
         const extraCluster = path.join(nbcode.extensionPath, "nbcode", "extra");
-        let clusters = myExtension.findClusters('non-existent').
+        let clusters = myExtension.findClusters('non-existent', log).
             // ignore 'extra' cluster in the extension path, since nbjavac is there during development:
             filter(s => !s.startsWith(extraCluster));
 
