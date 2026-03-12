@@ -34,7 +34,7 @@
 ```bash
 $ git clone --recurse-submodules https://github.com/apache/netbeans-vscode.git
 $ cd netbeans-vscode
-netbeans-vscode$ git submodules update --init
+netbeans-vscode$ git submodule update --init
 ```
 
 ## Building
