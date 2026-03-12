@@ -119,16 +119,24 @@ if (typeof process === 'object' && typeof process.argv0 ==='string' && process.a
         "--user-data-dir=" + datadir,
         "--extensions-dir=" + extdir
     ].concat(args);
-    let extraEnv: NodeJS.ProcessEnv = {
+    let extraEnv: NodeJS.ProcessEnv = env.netbeans_debug ? {
+        // no override of netbeans_debug
+    } : {
         netbeans_debug : '-J-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=8000'
     }
     console.log('Launching `code` with following arguments:');
     for (var arg of codeArgs) {
         console.log(`  ${arg}`);
     }
-    console.log('and following additional environment variables:');
-    for (var name in extraEnv) {
-        console.log(`  ${name}=${extraEnv[name]}`);
+    {
+        let first = true;
+        for (var name in extraEnv) {
+            if (first) {
+                console.log('and following additional environment variables:');
+                first = false;
+            }
+            console.log(`  ${name}=${extraEnv[name]}`);
+        }
     }
 
     let codeProc: ChildProcessByStdio<any, Readable, Readable> = spawn("code", codeArgs, {

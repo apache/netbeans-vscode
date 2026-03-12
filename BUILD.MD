@@ -148,6 +148,25 @@ are being passed to the `code` by default:
 The script also instructs the system to print messages (stderr, out) to the console
 by adding `-J-Dnetbeans.logger.console=true` to the npm commandline.
 This has the same effect as `netbeans.verbose = true` settings in the vscode.
+Following summary is printed when using `npm run nbcode`:
+
+```bash
+Launching `code` with following arguments:
+  --extensionDevelopmentPath=/netbeans-vscode/vscode
+  --user-data-dir=/netbeans-vscode/vscode/out/userdir
+  --extensions-dir=/netbeans-vscode/vscode/out/extdir
+and following additional environment variables:
+  netbeans_debug=-J-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=8000
+```
+
+With such a summary of arguments passed `code` to
+the code as well as environment variables additionally provided to the process one can
+fully understand what the script is doing. The `netbeans_debug` variable is only added
+if not already specified. As such one can fully control the debugging arguments by
+defining the variable before executing the `npm` script:
+```bash
+netbeans_debug=-J-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=7777 npm run nbcode
+```
 
 <!--
 ### NBLS userdir locations
