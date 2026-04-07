@@ -23,7 +23,7 @@
 
 ## Prerequisities
 
-- JDK, version 17 or later
+- JDK, version 21 or later
 - Ant, latest version
 - Maven, latest version
 - node.js, latest LTS (to build VSIX)
