@@ -133,7 +133,7 @@ export function enableConsoleLog() {
     console.log("enableConsoleLog");
 }
 
-export function findClusters(myPath : string, log: vscode.OutputChannel): string[] {
+export function findClusters(myPath : string, log?: vscode.OutputChannel): string[] {
     let clusters: string[] = [];
     for (let e of vscode.extensions.all) {
         if (e.extensionPath === myPath) {
