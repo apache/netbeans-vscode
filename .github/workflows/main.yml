@@ -93,7 +93,7 @@ jobs:
       matrix:
         java: [ '21', '25' ]
         exclude:
-          - java: ${{ github.event_name == 'pull_request' && 'nothing' || '21' }}
+          - java: ${{ github.event_name == 'pull_request' && 'nothing' || '25' }}
       fail-fast: false
     steps:
 
@@ -121,11 +121,11 @@ jobs:
         run: ant $OPTS -quiet -Dcluster.config=$CLUSTER_CONFIG -Dmetabuild.jsonurl=https://raw.githubusercontent.com/apache/netbeans-jenkins-lib/refs/heads/master/meta/netbeansvscode.json -Dmetabuild.RawVersion=dev build-netbeans
 
       - name: Prepare Artifact
-        if: ${{ matrix.java == '17' }}
+        if: ${{ matrix.java == '21' }}
         run: tar -I 'zstd -9 -T0' -cf /tmp/build.tar.zst --exclude ".git" .
 
       - name: Upload Workspace
-        if: ${{ (matrix.java == '17') && success() }}
+        if: ${{ (matrix.java == '21') && success() }}
         uses: actions/upload-artifact@v4
         with:
           name: build
@@ -135,11 +135,11 @@ jobs:
           if-no-files-found: error
           
       - name: Create Dev Build
-        if: ${{ matrix.java == '17' && contains(github.event.pull_request.labels.*.name, 'ci:dev-build') && success() }}
+        if: ${{ matrix.java == '21' && contains(github.event.pull_request.labels.*.name, 'ci:dev-build') && success() }}
         run: ant $OPTS -quiet -Dcluster.config=$CLUSTER_CONFIG zip-cluster-config
 
       - name: Upload Dev Build
-        if: ${{ matrix.java == '17' && contains(github.event.pull_request.labels.*.name, 'ci:dev-build') && success() }}
+        if: ${{ matrix.java == '21' && contains(github.event.pull_request.labels.*.name, 'ci:dev-build') && success() }}
         uses: actions/upload-artifact@v4
         with:
           name: dev-build_${{github.event.pull_request.number || github.run_id}}
@@ -158,7 +158,7 @@ jobs:
     timeout-minutes: 60
     strategy:
       matrix:
-        java: [ '17' ]
+        java: [ '21' ]
         config: [ 'release' ]
       fail-fast: false
     steps:
@@ -220,7 +220,7 @@ jobs:
     timeout-minutes: 60
     strategy:
       matrix:
-        java: [ '17' ]
+        java: [ '21' ]
       fail-fast: false
 
     steps:

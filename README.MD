@@ -4,7 +4,7 @@ Apache NetBeans Language Server for VS Code extension (VSNetBeans) is based on N
 See [Documentation](vscode/README.md) on VSNetBeans features.
 
 ## Requirements
-* JDK 17 or higher to build and run Java LSP
+* JDK 21 or higher to build and run Java LSP
 * Node.js 20.18.1 or higher and npm installed to build VSIX
 
 ## Build
