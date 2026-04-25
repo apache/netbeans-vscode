@@ -118,7 +118,7 @@ if (typeof process === 'object' && typeof process.argv0 ==='string' && process.a
         "--extensionDevelopmentPath=" + process.cwd(),
         "--user-data-dir=" + datadir,
         "--extensions-dir=" + extdir
-    ].concat(args);
+    ];
     let extraEnv: NodeJS.ProcessEnv = env.netbeans_debug ? {
         // no override of netbeans_debug
     } : {
