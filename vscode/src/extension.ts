@@ -73,6 +73,7 @@ export const COMMAND_PREFIX : string = "nbls";
 const DATABASE: string = 'Database';
 export const listeners = new Map<string, string[]>();
 export let client: Promise<NbLanguageClient>;
+export let projectDiagnosticCollection: vscode.DiagnosticCollection;
 export let clientRuntimeJDK : string | null = null;
 export const MINIMAL_JDK_VERSION = 17;
 export const TEST_PROGRESS_EVENT: string = "testProgress";
@@ -499,7 +500,10 @@ class LineBufferingPseudoterminal implements vscode.Pseudoterminal {
     }
 }
 
-export function activate(context: ExtensionContext): VSNetBeansAPI {    
+export function activate(context: ExtensionContext): VSNetBeansAPI {
+    projectDiagnosticCollection = vscode.languages.createDiagnosticCollection('java-workspace');
+    context.subscriptions.push(projectDiagnosticCollection);
+    
     const provider = new StringContentProvider();
     const scheme = 'in-memory';
     const providerRegistration = vscode.workspace.registerTextDocumentContentProvider(scheme, provider);
@@ -815,6 +819,13 @@ export function activate(context: ExtensionContext): VSNetBeansAPI {
     context.subscriptions.push(commands.registerCommand(COMMAND_PREFIX + '.workspace.compile', () =>
         wrapCommandWithProgress(COMMAND_PREFIX + '.build.workspace', 'Compiling workspace...', log, true)
     ));
+    context.subscriptions.push(commands.registerCommand(COMMAND_PREFIX + '.workspace.scan', () => {
+        doWorkspaceScan();
+    }));
+    context.subscriptions.push(commands.registerCommand(COMMAND_PREFIX + '.workspace.scan.clear', () => {
+        projectDiagnosticCollection.clear();
+        vscode.window.showInformationMessage('Workspace diagnostics cleared.');
+    }));
     context.subscriptions.push(commands.registerCommand(COMMAND_PREFIX + '.workspace.clean', () =>
         wrapCommandWithProgress(COMMAND_PREFIX + '.clean.workspace', 'Cleaning workspace...', log, true)
     ));
@@ -1140,6 +1151,13 @@ export function activate(context: ExtensionContext): VSNetBeansAPI {
 
     // register completions:
     launchConfigurations.registerCompletion(context);
+    client.then(() => {
+        const config = vscode.workspace.getConfiguration('netbeans');
+        if (config.get<boolean>('autoScanWorkspace', false)) {
+            vscode.commands.executeCommand(COMMAND_PREFIX + '.workspace.scan');
+        }
+    }).catch(() => {});
+
     return Object.freeze({
         version : API_VERSION,
         apiVersion : API_VERSION
@@ -2147,4 +2165,74 @@ class StringContentProvider implements vscode.TextDocumentContentProvider {
     }
 
 }
+
+async function doWorkspaceScan() {
+    const config = vscode.workspace.getConfiguration('netbeans');
+    const excludes = config.get<string[]>('scanExclude', ["**/node_modules/**", "**/target/**", "**/build/**"]);
+    const excludePattern = excludes.join(',');
+    
+    await vscode.window.withProgress({
+        location: vscode.ProgressLocation.Window,
+        title: "Scanning workspace for diagnostics...",
+        cancellable: true
+    }, async (progress, token) => {
+        try {
+            const files = await vscode.workspace.findFiles('**/*.java', `{${excludePattern}}`);
+            const total = files.length;
+            let current = 0;
+            
+            projectDiagnosticCollection.clear();
+            
+            // Process in small chunks to avoid overloading the LSP server
+            const chunkSize = 5;
+            for (let i = 0; i < files.length; i += chunkSize) {
+                if (token.isCancellationRequested) {
+                    break;
+                }
+                const chunk = files.slice(i, i + chunkSize);
+                
+                await Promise.all(chunk.map(async (file) => {
+                    try {
+                        const diags: any[] = await vscode.commands.executeCommand('nbls.get.diagnostics', file.toString()) as any[];
+                        if (diags && diags.length > 0) {
+                            const vsDiags = diags
+                                .filter(d => {
+                                    // Filter out noisy annotation processor initialization errors (like Lombok on newer JDKs)
+                                    return !d.message.includes("Can't initialize javac processor") && !d.message.includes("lombok");
+                                })
+                                .map(d => {
+                                    const range = new vscode.Range(
+                                        new vscode.Position(d.range.start.line, d.range.start.character),
+                                        new vscode.Position(d.range.end.line, d.range.end.character)
+                                    );
+                                let severity = vscode.DiagnosticSeverity.Error;
+                                if (d.severity === 2) severity = vscode.DiagnosticSeverity.Warning;
+                                else if (d.severity === 3) severity = vscode.DiagnosticSeverity.Information;
+                                else if (d.severity === 4) severity = vscode.DiagnosticSeverity.Hint;
+                                
+                                const diagnostic = new vscode.Diagnostic(range, d.message, severity);
+                                if (d.source) {
+                                    diagnostic.source = d.source;
+                                }
+                                if (d.code) {
+                                    diagnostic.code = d.code;
+                                }
+                                return diagnostic;
+                            });
+                            projectDiagnosticCollection.set(file, vsDiags);
+                        }
+                    } catch (err) {
+                        // Ignore errors for individual files
+                    } finally {
+                        current++;
+                        progress.report({ message: `Scanned ${current}/${total} files`, increment: (1 / total) * 100 });
+                    }
+                }));
+            }
+        } catch (err) {
+            vscode.window.showErrorMessage(`Failed to scan workspace: ${err}`);
+        }
+    });
+}
+
 

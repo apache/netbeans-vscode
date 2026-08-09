@@ -284,6 +284,23 @@
 							"show types of `var` variables"
 						]
 					}
+				},
+				"netbeans.autoScanWorkspace": {
+					"type": "boolean",
+					"default": false,
+					"description": "Automatically scan the entire workspace for diagnostics (warnings/errors) upon load"
+				},
+				"netbeans.scanExclude": {
+					"type": "array",
+					"default": [
+						"**/node_modules/**",
+						"**/target/**",
+						"**/build/**"
+					],
+					"description": "Glob patterns of files and directories to exclude when scanning the workspace for diagnostics",
+					"items": {
+						"type": "string"
+					}
 				}
 			}
 		},
@@ -514,6 +531,14 @@
 			}
 		],
 		"commands": [
+			{
+				"command": "nbls.workspace.scan",
+				"title": "Java: Scan Workspace for Diagnostics"
+			},
+			{
+				"command": "nbls.workspace.scan.clear",
+				"title": "Java: Clear Workspace Diagnostics"
+			},
 			{
 				"command": "nbls.node.properties.edit",
 				"title": "Properties"
@@ -857,6 +882,14 @@
 				}
 			],
 			"commandPalette": [
+				{
+					"command": "nbls.workspace.scan",
+					"when": "nbJavaLSReady && config.netbeans.javaSupport.enabled"
+				},
+				{
+					"command": "nbls.workspace.scan.clear",
+					"when": "nbJavaLSReady && config.netbeans.javaSupport.enabled"
+				},
 				{
 					"command": "nbls.workspace.new",
 					"when": "nbJavaLSReady"
