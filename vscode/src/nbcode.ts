@@ -31,6 +31,7 @@ export interface LaunchInfo {
     storagePath: string;
     jdkHome: string | unknown;
     verbose? : boolean;
+    serverVmOptions?: string[];
 }
 
 function find(info: LaunchInfo): string {
@@ -76,6 +77,15 @@ export function launch(
     ideArgs.push(...extraArgs);
     if (env['netbeans_debug'] && extraArgs && extraArgs.find(s => s.includes("--list"))) {
         ideArgs.push(...['-J-Dnetbeans.logger.console=true', '-J-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=8000']);
+    }
+    if (info.serverVmOptions && Array.isArray(info.serverVmOptions)) {
+        for (let opt of info.serverVmOptions) {
+            if (!opt.startsWith('-J')) {
+                ideArgs.push('-J' + opt);
+            } else {
+                ideArgs.push(opt);
+            }
+        }
     }
 
     console.log(`Launching NBLS with arguments: ` + ideArgs);

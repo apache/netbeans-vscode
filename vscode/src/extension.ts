@@ -1292,12 +1292,15 @@ function doActivateWithJDK(promise: Promise<NbLanguageClient>, specifiedJDK: str
             // assume storage is path on disk
     }
 
-    let info = {
+    let serverVmOptions = workspace.getConfiguration('netbeans').get('serverVmOptions') as string[] | undefined;
+
+    let info: launcher.LaunchInfo = {
         clusters : findClusters(context.extensionPath),
         extensionPath: context.extensionPath,
         storagePath : userdir,
         jdkHome : specifiedJDK,
-        verbose: beVerbose
+        verbose: beVerbose,
+        serverVmOptions: serverVmOptions
     };    
     let launchMsg = `Launching Apache NetBeans Language Server with ${specifiedJDK ? specifiedJDK : 'default system JDK'} and userdir ${userdir}`;
     handleLog(log, launchMsg);
