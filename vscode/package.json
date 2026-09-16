@@ -139,6 +139,14 @@
 					"description": "Specifies the JDK on which user's project will be run. Defaults to the value of netbeans.jdkhome",
 					"scope": "machine-overridable"
 				},
+				"netbeans.serverVmOptions": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					},
+					"default": [],
+					"description": "Additional VM options for the NetBeans Language Server (e.g. [\"-Xmx4g\"])"
+				},
 				"netbeans.verbose": {
 					"type": "boolean",
 					"default": false,
