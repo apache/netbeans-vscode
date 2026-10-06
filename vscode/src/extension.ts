@@ -181,6 +181,23 @@ export function awaitClient() : Promise<NbLanguageClient> {
 function findJDK(onChange: (path : string | null) => void): void {
     let nowDark : boolean = isDarkColorTheme();
     let nowJavaEnabled : boolean = isJavaSupportEnabled();
+    function sameStringArray(a: string[] | undefined, b: string[] | undefined): boolean {
+        const aa = a || [];
+        const bb = b || [];
+        if (aa.length !== bb.length) {
+            return false;
+        }
+        for (let i = 0; i < aa.length; i++) {
+            if (aa[i] !== bb[i]) {
+                return false;
+            }
+        }
+        return true;
+    }
+    function getServerVmOptions(): string[] {
+        const raw = workspace.getConfiguration('netbeans')?.get('serverVmOptions', []);
+        return Array.isArray(raw) ? (raw as any[]).map(String) : [];
+    }
     function find(): string | null {
         let nbJdk = workspace.getConfiguration('netbeans').get('jdkhome');
         if (nbJdk) {
@@ -204,6 +221,7 @@ function findJDK(onChange: (path : string | null) => void): void {
 
     let currentJdk = find();
     let projectJdk : string | undefined = getProjectJDKHome();
+    let serverVmOptions: string[] = getServerVmOptions();
     validateJDKCompatibility(projectJdk);
     let timeout: NodeJS.Timeout | undefined = undefined;
     workspace.onDidChangeConfiguration(params => {
@@ -228,11 +246,13 @@ function findJDK(onChange: (path : string | null) => void): void {
             let newD = isDarkColorTheme();
             let newJavaEnabled = isJavaSupportEnabled();
             let newProjectJDK : string | undefined = getProjectJDKHome();
-            if (newJdk !== currentJdk || newD != nowDark || newJavaEnabled != nowJavaEnabled || newProjectJDK != projectJdk) {
+            let newServerVmOptions: string[] = getServerVmOptions();
+            if (newJdk !== currentJdk || newD != nowDark || newJavaEnabled != nowJavaEnabled || newProjectJDK != projectJdk || !sameStringArray(newServerVmOptions, serverVmOptions)) {
                 nowDark = newD;
                 nowJavaEnabled = newJavaEnabled;
                 currentJdk = newJdk;
                 projectJdk = newProjectJDK;
+                serverVmOptions = newServerVmOptions;
                 onChange(currentJdk);
             }
         }, 0);
@@ -1316,7 +1336,12 @@ function doActivateWithJDK(promise: Promise<NbLanguageClient>, specifiedJDK: str
         });
         server.listen(() => {
             const address: any = server.address();
-            let extras : string[] = ["--modules", "-J-XX:PerfMaxStringConstLength=10240"];
+            let extras : string[] = [];
+            const rawVmOptions = netbeansConfig.get('serverVmOptions', []);
+            if (Array.isArray(rawVmOptions)) {
+                extras.push(...(rawVmOptions as any[]).map((el) => `-J${el}`));
+            }
+            extras.push("--modules", "-J-XX:PerfMaxStringConstLength=10240");
             if (isDarkColorTheme()) {
                 extras.push('--laf', 'com.formdev.flatlaf.FlatDarkLaf');
             }
