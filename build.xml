@@ -193,11 +193,6 @@
             <arg value="run" />
             <arg value="test" />
         </exec>
-        <exec executable="npm${cmd.suffix}" failonerror="true" dir="vscode">
-            <arg value="--allow-same-version"/>
-            <arg value="run" />
-            <arg value="apisupport" />
-        </exec>
     </target>
 
     <target name="build-netbeans" description="Build netbeans">
