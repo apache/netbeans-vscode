@@ -1538,7 +1538,7 @@
 	"dependencies": {
 		"@vscode/debugadapter": "1.55.1",
 		"@vscode/webview-ui-toolkit": "^1.2.2",
-		"handlebars": "^4.7.8",
+		"handlebars": "^4.7.10",
 		"jdk-utils": "^0.4.4",
 		"jsonc-parser": "3.0.0",
 		"vscode-languageclient": "8.0.1",
